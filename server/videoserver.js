@@ -14,8 +14,8 @@ const server = http.createServer((req, res) => {
             '-f', 'v4l2',           // Use v4l2 input format (for webcams)
             '-i', '/dev/video0',    // Input device
             '-f', 'mjpeg',          // Output format: MJPEG (motion jpeg)
-            '-q:v', '5',            // Video quality (lower is better)
-            '-r', '100',             // Set framerate to 10fps
+            '-q:v', '2',            // Video quality (lower is better)
+            '-r', '10',             // Set framerate to 10fps
             'pipe:1'                // Pipe the output to stdout
         ]);
 
