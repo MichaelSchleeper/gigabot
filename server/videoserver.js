@@ -3,7 +3,7 @@ const express = require('express');
 const path = require('path');
 
 const app = express();
-const port = 3000;
+const port = 2000;
 
 app.use(express.static(path.join(__dirname, 'video.html')));
 
@@ -32,12 +32,12 @@ app.get('/stream', (req, res) => {
         console.error('FFmpeg stderr:', data.toString());
     });
 
-    // ffmpeg.on('close', (code) => {
-    //     if (code !== 0) {
-    //         console.error(`FFmpeg process exited with code ${code}`);
-    //     }
-    //     res.end();
-    // });
+    ffmpeg.on('close', (code) => {
+        if (code !== 0) {
+            console.error(`FFmpeg process exited with code ${code}`);
+        }
+        res.end();
+    });
 
     ffmpeg.on('error', (err) => {
         console.error('FFmpeg error:', err);
@@ -51,9 +51,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'video.html'));
 });
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-});
+app.listen(port);
 
 // Catch unhandled promise rejections and unhandled exceptions
 process.on('unhandledRejection', (error) => {
