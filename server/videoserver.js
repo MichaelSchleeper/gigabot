@@ -16,12 +16,13 @@ const server = http.createServer((req, res) => {
             '-f', 'v4l2',           // Use v4l2 input format (for webcams)
             '-i', '/dev/video0',    // Input device for video (webcam)
             '-f', 'alsa',           // Use ALSA for audio capture
-            '-i', 'default',        // Default audio input device (you can adjust this for a specific mic)
+            '-i', 'hw:0,0',         // Use specific audio device (adjust this based on your system)
             '-c:v', 'vp8',          // VP8 codec for video (WebM)
             '-c:a', 'libopus',      // Opus codec for audio (WebM)
             '-b:v', '1M',           // Video bitrate
             '-b:a', '64k',          // Audio bitrate (adjust as necessary)
             '-f', 'webm',           // WebM container format
+            '-async', '1',          // Synchronize audio and video
             'pipe:1'                // Pipe the output to stdout
         ]);
 
