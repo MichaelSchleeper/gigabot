@@ -19,8 +19,15 @@ const server = http.createServer((req, res) => {
             'pipe:1'                // Pipe the output to stdout
         ]);
 
-        // Pipe the ffmpeg output directly to the HTTP response
-        ffmpeg.stdout.pipe(res);
+        ffmpeg.stdout.on('data', (data) => {
+            // MJPEG format requires boundary to separate frames
+            const boundary = '--frame\r\n';
+            const contentType = 'Content-Type: image/jpeg\r\n\r\n';
+            
+            res.write(boundary);
+            res.write(contentType);
+            res.write(data);  // Send the JPEG frame data
+        });
 
         ffmpeg.stderr.on('data', (data) => {
             console.error(`stderr: ${data}`);
@@ -33,10 +40,23 @@ const server = http.createServer((req, res) => {
         ffmpeg.on('error', (err) => {
             console.error('Failed to start ffmpeg:', err);
         });
+
+        // Handle WebSocket or client disconnection
+        req.on('close', () => {
+            ffmpeg.kill(); // Kill the ffmpeg process if client disconnects
+            console.log('Client disconnected');
+        });
     } else {
         // Serve the HTML page if the request is not for the stream
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.send(__dirname + "video.html");
+        res.end(`
+            <html>
+                <body>
+                    <h1>Webcam Stream</h1>
+                    <img src="/stream" alt="Webcam Stream" />
+                </body>
+            </html>
+        `);
     }
 });
 
