@@ -35,23 +35,26 @@ const server = http.createServer((req, res) => {
             res.write(data); // Send the video data to the browser
         });
 
+        // Capture stderr output to see any issues with ffmpeg
         ffmpeg.stderr.on('data', (data) => {
             console.error(`stderr: ${data.toString()}`);
         });
 
+        // Log when ffmpeg process closes
         ffmpeg.on('close', (code) => {
             console.log(`ffmpeg process exited with code ${code}`);
         });
 
+        // Handle error events
         ffmpeg.on('error', (err) => {
             console.error('Failed to start ffmpeg:', err);
         });
 
+        // Close the ffmpeg process if the client disconnects
         req.on('close', () => {
-            ffmpeg.kill('SIGTERM'); // Terminate the ffmpeg process if the client disconnects
+            ffmpeg.kill('SIGTERM');
             console.log('Client disconnected');
         });
-
     } else {
         // Serve the HTML page if the request is not for the stream
         res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -70,6 +73,6 @@ const server = http.createServer((req, res) => {
 });
 
 // Start the server on port 8080
-server.listen(25565, () => {
-    console.log('Server is listening on http://localhost:25565');
+server.listen(8080, () => {
+    console.log('Server is listening on http://localhost:8080');
 });
