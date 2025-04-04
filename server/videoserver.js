@@ -15,7 +15,7 @@ const server = http.createServer((req, res) => {
             '-i', '/dev/video0',    // Input device
             '-f', 'mjpeg',          // Output format: MJPEG (motion jpeg)
             '-q:v', '5',            // Video quality (lower is better)
-            '-r', '30',             // Set framerate to 30fps
+            '-r', '10',             // Set framerate to 30fps
             'pipe:1'                // Pipe the output to stdout
         ]);
 
