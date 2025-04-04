@@ -51,7 +51,9 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'video.html'));
 });
 
-app.listen(port);
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+});
 
 // Catch unhandled promise rejections and unhandled exceptions
 process.on('unhandledRejection', (error) => {
