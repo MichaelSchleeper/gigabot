@@ -13,7 +13,7 @@ const server = http.createServer((req, res) => {
 
         // Spawn ffmpeg to capture video and audio from the webcam and mic
         const ffmpeg = spawn('ffmpeg', [
-            '-f', 'v4l2',           // Use v4l2 input format (for webcams)
+           '-f', 'v4l2',           // Use v4l2 input format (for webcams)
             '-i', '/dev/video0',    // Input device for video (webcam)
             '-f', 'alsa',           // Use ALSA for audio capture
             '-i', 'hw:3,0',         // Use specific audio device (adjust this based on your system)
@@ -23,7 +23,7 @@ const server = http.createServer((req, res) => {
             '-b:a', '64k',          // Audio bitrate (adjust as necessary)
             '-f', 'webm',           // WebM container format
             '-async', '1',          // Synchronize audio and video
-            'pipe:1'                // Pipe the output to stdout
+            'pipe:1'                // Pipe the output to stdout      // Pipe the output to stdout
         ]);
 
         ffmpeg.stdout.on('data', (data) => {
