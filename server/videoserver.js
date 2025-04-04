@@ -1,58 +1,49 @@
 const http = require('http');
 const { spawn } = require('child_process');
 
-let ffmpeg; // Declare ffmpeg globally to control its process
-
+// Create an HTTP server
 const server = http.createServer((req, res) => {
     if (req.url === '/stream') {
-        // Set response headers for video streaming
+        // Set response headers for MJPEG streaming
         res.writeHead(200, {
-            'Content-Type': 'video/x-flv',
-            'Cache-Control': 'no-cache', // Prevent caching of the video stream
-            'Connection': 'keep-alive'   // Keep connection alive
+            'Content-Type': 'multipart/x-mixed-replace; boundary=frame'
         });
 
-        // If there's an existing ffmpeg process, kill it
-        if (ffmpeg) {
-            ffmpeg.kill('SIGTERM');
-            console.log('Previous ffmpeg process killed');
-        }
-
-        // Spawn a new ffmpeg process to capture video from the webcam
-        ffmpeg = spawn('ffmpeg', [
+        // Spawn ffmpeg to capture video from the webcam
+        const ffmpeg = spawn('ffmpeg', [
             '-f', 'v4l2',           // Use v4l2 input format (for webcams)
             '-i', '/dev/video0',    // Input device
-            '-f', 'flv',            // FLV output format (better for H.264 streams)
-            '-vcodec', 'libx264',   // H.264 codec
-            '-preset', 'ultrafast', // Use ultrafast preset for low latency
-            '-tune', 'zerolatency', // Tune for low latency
-            '-b:v', '1M',           // Video bitrate (adjust as needed)
+            '-f', 'mjpeg',          // Output format: MJPEG (motion jpeg)
+            '-q:v', '5',            // Video quality (lower is better)
+            '-r', '30',             // Set framerate to 30fps
             'pipe:1'                // Pipe the output to stdout
         ]);
 
-        // Stream the output from ffmpeg to the client
         ffmpeg.stdout.on('data', (data) => {
-            res.write(data); // Send the video data to the browser
+            // MJPEG format requires boundary to separate frames
+            const boundary = '--frame\r\n';
+            const contentType = 'Content-Type: image/jpeg\r\n\r\n';
+            
+            res.write(boundary);
+            res.write(contentType);
+            res.write(data);  // Send the JPEG frame data
         });
 
-        // Capture stderr output to see any issues with ffmpeg
         ffmpeg.stderr.on('data', (data) => {
-            console.error(`stderr: ${data.toString()}`);
+            console.error(`stderr: ${data}`);
         });
 
-        // Log when ffmpeg process closes
         ffmpeg.on('close', (code) => {
             console.log(`ffmpeg process exited with code ${code}`);
         });
 
-        // Handle error events
         ffmpeg.on('error', (err) => {
             console.error('Failed to start ffmpeg:', err);
         });
 
-        // Close the ffmpeg process if the client disconnects
+        // Handle WebSocket or client disconnection
         req.on('close', () => {
-            ffmpeg.kill('SIGTERM');
+            ffmpeg.kill(); // Kill the ffmpeg process if client disconnects
             console.log('Client disconnected');
         });
     } else {
@@ -62,10 +53,7 @@ const server = http.createServer((req, res) => {
             <html>
                 <body>
                     <h1>Webcam Stream</h1>
-                    <video id="video-stream" controls autoplay>
-                        <source src="/stream" type="video/x-flv">
-                        Your browser does not support the video tag.
-                    </video>
+                    <img src="/stream" alt="Webcam Stream" />
                 </body>
             </html>
         `);
@@ -74,5 +62,5 @@ const server = http.createServer((req, res) => {
 
 // Start the server on port 8080
 server.listen(25565, () => {
-    console.log('Server is listening on http://localhost:25565');
+    console.log('Server is listening on http://localhost:8080');
 });
