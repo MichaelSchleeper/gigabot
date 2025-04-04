@@ -32,12 +32,12 @@ app.get('/stream', (req, res) => {
         console.error('FFmpeg stderr:', data.toString());
     });
 
-    ffmpeg.on('close', (code) => {
-        if (code !== 0) {
-            console.error(`FFmpeg process exited with code ${code}`);
-        }
-        res.end();
-    });
+    // ffmpeg.on('close', (code) => {
+    //     if (code !== 0) {
+    //         console.error(`FFmpeg process exited with code ${code}`);
+    //     }
+    //     res.end();
+    // });
 
     ffmpeg.on('error', (err) => {
         console.error('FFmpeg error:', err);
