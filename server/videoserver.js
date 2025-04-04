@@ -31,32 +31,36 @@ const wss = new WebSocket.Server({ server });
 wss.on('connection', (ws) => {
     console.log('Client connected');
 
-    // Spawn the mplayer process to capture video from the webcam
-    const mplayer = spawn('mplayer', [
-        'tv://', 
-        '-tv', 'driver=v4l2:device=/dev/video0:input=0:width=640:height=360', 
-        '-vo', 'null', 
-        '-nolirc'
+    // Spawn the ffmpeg process to capture video from the webcam
+    const ffmpeg = spawn('ffmpeg', [
+        '-f', 'v4l2',           // Use video4linux2 input format
+        '-i', '/dev/video0',    // Input device
+        '-t', '10',             // Capture 10 seconds (adjust for your use case)
+        '-f', 'webm',           // Output format (webm is efficient for streaming)
+        '-c:v', 'vp8',          // Video codec (VP8 for webm)
+        '-b:v', '1M',           // Video bitrate
+        '-an',                  // No audio
+        'pipe:1'                // Send output to stdout
     ]);
 
-    mplayer.stdout.on('data', (data) => {
-        console.log('Received video data');
+    ffmpeg.stdout.on('data', (data) => {
+        console.log('Sending video data');
         // Send video stream data to WebSocket client
         ws.send(data);
     });
 
-    mplayer.stderr.on('data', (data) => {
+    ffmpeg.stderr.on('data', (data) => {
         console.error(`stderr: ${data}`);
     });
 
-    mplayer.on('close', (code) => {
-        console.log(`mplayer process exited with code ${code}`);
+    ffmpeg.on('close', (code) => {
+        console.log(`ffmpeg process exited with code ${code}`);
     });
 
     // Handle WebSocket closing
     ws.on('close', () => {
         console.log('Client disconnected');
-        mplayer.kill(); // Stop mplayer if the WebSocket connection is closed
+        ffmpeg.kill(); // Stop ffmpeg if the WebSocket connection is closed
     });
 });
 
