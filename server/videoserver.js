@@ -13,19 +13,19 @@ const server = http.createServer((req, res) => {
 
         // Spawn ffmpeg to capture video and audio from the webcam and mic
         const ffmpeg = spawn('ffmpeg', [
-           '-f', 'v4l2',           // Use v4l2 input format (for webcams)
+            '-f', 'v4l2',           // Use v4l2 input format (for webcams)
             '-i', '/dev/video0',    // Input device for video (webcam)
             '-f', 'alsa',           // Use ALSA for audio capture
-            '-i', 'hw:1,1',         // Use specific audio device (adjust this based on your system)
-            '-ac', '1',              // Mono audio (1 channel)
-            '-ar', '44100',          // Sample rate of 44.1 kHz
+            '-i', 'hw:3,0',         // Use the correct audio device (hw:3,0 as per your `arecord` command)
+            '-ac', '1',             // Mono audio (1 channel)
+            '-ar', '44100',         // Sample rate of 44.1 kHz
             '-c:v', 'vp8',          // VP8 codec for video (WebM)
             '-c:a', 'libopus',      // Opus codec for audio (WebM)
             '-b:v', '1M',           // Video bitrate
             '-b:a', '64k',          // Audio bitrate (adjust as necessary)
             '-f', 'webm',           // WebM container format
             '-async', '1',          // Synchronize audio and video
-            'pipe:1'                // Pipe the output to stdout      // Pipe the output to stdout
+            'pipe:1'                // Pipe the output to stdout
         ]);
 
         ffmpeg.stdout.on('data', (data) => {
