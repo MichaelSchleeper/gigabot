@@ -73,6 +73,6 @@ const server = http.createServer((req, res) => {
 });
 
 // Start the server on port 8080
-server.listen(8080, () => {
-    console.log('Server is listening on http://localhost:8080');
+server.listen(25565, () => {
+    console.log('Server is listening on http://localhost:25565');
 });
