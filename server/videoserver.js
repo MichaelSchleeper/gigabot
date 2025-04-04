@@ -36,14 +36,7 @@ const server = http.createServer((req, res) => {
     } else {
         // Serve the HTML page if the request is not for the stream
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(`
-            <html>
-                <body>
-                    <h1>Webcam Stream</h1>
-                    <img src="/stream" alt="Webcam Stream" />
-                </body>
-            </html>
-        `);
+        res.send(__dirname + "video.html");
     }
 });
 
