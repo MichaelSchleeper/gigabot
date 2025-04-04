@@ -16,7 +16,7 @@ const server = http.createServer((req, res) => {
            '-f', 'v4l2',           // Use v4l2 input format (for webcams)
             '-i', '/dev/video0',    // Input device for video (webcam)
             '-f', 'alsa',           // Use ALSA for audio capture
-            '-i', 'hw:3,0',         // Use specific audio device (adjust this based on your system)
+            '-i', 'hw:1,1',         // Use specific audio device (adjust this based on your system)
             '-ac', '1',              // Mono audio (1 channel)
             '-ar', '44100',          // Sample rate of 44.1 kHz
             '-c:v', 'vp8',          // VP8 codec for video (WebM)
