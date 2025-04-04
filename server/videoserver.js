@@ -21,14 +21,14 @@ const server = http.createServer((req, res) => {
         ffmpeg = spawn('ffmpeg', [
             '-f', 'v4l2',           // Use v4l2 input format (for webcams)
             '-i', '/dev/video0',    // Input device
-            '-s', '640x360',        // Set resolution (change if necessary)
-            '-f', 'mjpeg',          // Output format: MJPEG (motion jpeg)
-            '-q:v', '5',            // Video quality (lower is better)
-            '-r', '30',             // Set framerate to 30fps
-            '-bufsize', '512k',     // Set the buffer size to 512KB
+            '-f', 'flv',            // FLV output format
+            '-vcodec', 'libx264',   // H.264 codec
+            '-preset', 'ultrafast', // Use ultrafast preset for low latency
             '-tune', 'zerolatency', // Tune for low latency
+            '-b:v', '1M',           // Video bitrate
             'pipe:1'                // Pipe the output to stdout
         ]);
+        
 
         // Stream the output from ffmpeg to the client
         ffmpeg.stdout.on('data', (data) => {
