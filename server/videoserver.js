@@ -15,7 +15,7 @@ const server = http.createServer((req, res) => {
             '-i', '/dev/video0',    // Input device
             '-f', 'mjpeg',          // Output format: MJPEG (motion jpeg)
             '-q:v', '5',            // Video quality (lower is better)
-            '-r', '10',             // Set framerate to 30fps
+            '-r', '100',             // Set framerate to 10fps
             'pipe:1'                // Pipe the output to stdout
         ]);
 
@@ -61,6 +61,6 @@ const server = http.createServer((req, res) => {
 });
 
 // Start the server on port 8080
-server.listen(25565, () => {
-    console.log('Server is listening on http://localhost:8080');
+server.listen(25566, () => {
+    console.log('Server is listening on http://localhost:25566');
 });
