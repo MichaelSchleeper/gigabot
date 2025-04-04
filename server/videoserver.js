@@ -1,66 +1,66 @@
 const { spawn } = require('child_process');
-const express = require('express');
-const path = require('path');
+const http = require('http');
+const WebSocket = require('ws');
 
-const app = express();
-const port = 2000;
+// Create an HTTP server
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(`
+        <html>
+            <body>
+                <h1>Webcam Stream</h1>
+                <video id="videoElement" width="640" height="360" autoplay></video>
+                <script>
+                    var videoElement = document.getElementById('videoElement');
+                    var ws = new WebSocket('ws://localhost:8080');
+                    ws.onmessage = function(event) {
+                        var arrayBufferView = new Uint8Array(event.data);
+                        var blob = new Blob([arrayBufferView], { type: "video/webm" });
+                        var url = URL.createObjectURL(blob);
+                        videoElement.src = url;
+                    };
+                </script>
+            </body>
+        </html>
+    `);
+});
 
-app.use(express.static(path.join(__dirname, 'video.html')));
+// Set up WebSocket server to send video data to clients
+const wss = new WebSocket.Server({ server });
 
-app.get('/stream', (req, res) => {
-    res.contentType('flv');
+wss.on('connection', (ws) => {
+    console.log('Client connected');
 
-    const ffmpeg = spawn('ffmpeg', [
-        '-f', 'v4l2',               // Video capture format
-        '-i', '/dev/video0',        // Correct video device (e.g., /dev/video1)
-        '-f', 'alsa',               // Audio format
-        '-i', 'hw:0,0',             // Correct audio device (e.g., hw:0,0)
-        '-c:v', 'libx264',          // Video codec
-        '-preset', 'fast',          // Encoding preset
-        '-c:a', 'aac',              // Audio codec
-        '-ar', '44100',             // Audio sample rate
-        '-b:a', '128k',             // Audio bitrate
-        '-f', 'flv',                // FLV output format
-        'pipe:1'                    // Pipe output to the server response
+    // Spawn the mplayer process to capture video from the webcam
+    const mplayer = spawn('mplayer', [
+        'tv://', 
+        '-tv', 'driver=v4l2:device=/dev/video0:input=0:width=640:height=360', 
+        '-vo', 'null', 
+        '-nolirc'
     ]);
 
-    ffmpeg.stdout.on('data', (data) => {
-        console.log('FFmpeg stdout:', data.toString());
+    mplayer.stdout.on('data', (data) => {
+        console.log('Received video data');
+        // Send video stream data to WebSocket client
+        ws.send(data);
     });
 
-    ffmpeg.stderr.on('data', (data) => {
-        console.error('FFmpeg stderr:', data.toString());
+    mplayer.stderr.on('data', (data) => {
+        console.error(`stderr: ${data}`);
     });
 
-    ffmpeg.on('close', (code) => {
-        if (code !== 0) {
-            console.error(`FFmpeg process exited with code ${code}`);
-        }
-        res.end();
+    mplayer.on('close', (code) => {
+        console.log(`mplayer process exited with code ${code}`);
     });
 
-    ffmpeg.on('error', (err) => {
-        console.error('FFmpeg error:', err);
-        res.status(500).send('FFmpeg error');
+    // Handle WebSocket closing
+    ws.on('close', () => {
+        console.log('Client disconnected');
+        mplayer.kill(); // Stop mplayer if the WebSocket connection is closed
     });
-
-    ffmpeg.stdout.pipe(res);
 });
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'video.html'));
-});
-
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-});
-
-// Catch unhandled promise rejections and unhandled exceptions
-process.on('unhandledRejection', (error) => {
-    console.error('Unhandled Promise Rejection:', error);
-});
-
-process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
-    process.exit(1);  // Exit the process to prevent it from continuing in an invalid state
+// Start the server on port 8080
+server.listen(8080, () => {
+    console.log('Server is listening on http://localhost:8080');
 });
