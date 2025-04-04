@@ -1,14 +1,15 @@
-const { spawn } = require('child_process');
 const http = require('http');
-
+const { spawn } = require('child_process');
 
 let ffmpeg; // Declare ffmpeg globally to control its process
 
 const server = http.createServer((req, res) => {
     if (req.url === '/stream') {
-        // Set response headers for MJPEG streaming
+        // Set response headers for video streaming
         res.writeHead(200, {
-            'Content-Type': 'multipart/x-mixed-replace; boundary=frame'
+            'Content-Type': 'video/x-flv',
+            'Cache-Control': 'no-cache', // Prevent caching of the video stream
+            'Connection': 'keep-alive'   // Keep connection alive
         });
 
         // If there's an existing ffmpeg process, kill it
@@ -21,27 +22,21 @@ const server = http.createServer((req, res) => {
         ffmpeg = spawn('ffmpeg', [
             '-f', 'v4l2',           // Use v4l2 input format (for webcams)
             '-i', '/dev/video0',    // Input device
-            '-f', 'flv',            // FLV output format
+            '-f', 'flv',            // FLV output format (better for H.264 streams)
             '-vcodec', 'libx264',   // H.264 codec
             '-preset', 'ultrafast', // Use ultrafast preset for low latency
             '-tune', 'zerolatency', // Tune for low latency
-            '-b:v', '1M',           // Video bitrate
+            '-b:v', '1M',           // Video bitrate (adjust as needed)
             'pipe:1'                // Pipe the output to stdout
         ]);
-        
 
         // Stream the output from ffmpeg to the client
         ffmpeg.stdout.on('data', (data) => {
-            const boundary = '--frame\r\n';
-            const contentType = 'Content-Type: image/jpeg\r\n\r\n';
-
-            res.write(boundary);    // Write boundary
-            res.write(contentType); // Write content type
-            res.write(data);         // Write the actual frame data
+            res.write(data); // Send the video data to the browser
         });
 
         ffmpeg.stderr.on('data', (data) => {
-            console.error(`stderr: ${data}`);
+            console.error(`stderr: ${data.toString()}`);
         });
 
         ffmpeg.on('close', (code) => {
@@ -53,7 +48,7 @@ const server = http.createServer((req, res) => {
         });
 
         req.on('close', () => {
-            ffmpeg.kill('SIGTERM'); // Terminate the ffmpeg process if client disconnects
+            ffmpeg.kill('SIGTERM'); // Terminate the ffmpeg process if the client disconnects
             console.log('Client disconnected');
         });
 
@@ -64,7 +59,10 @@ const server = http.createServer((req, res) => {
             <html>
                 <body>
                     <h1>Webcam Stream</h1>
-                    <img src="/stream" alt="Webcam Stream" />
+                    <video id="video-stream" controls autoplay>
+                        <source src="/stream" type="video/x-flv">
+                        Your browser does not support the video tag.
+                    </video>
                 </body>
             </html>
         `);
@@ -73,5 +71,5 @@ const server = http.createServer((req, res) => {
 
 // Start the server on port 8080
 server.listen(25565, () => {
-    console.log('Server is listening on http://localhost:8080');
+    console.log('Server is listening on http://localhost:25565');
 });
