@@ -1,67 +1,50 @@
-const { spawn } = require('child_process');
 const http = require('http');
-const WebSocket = require('ws');
+const { spawn } = require('child_process');
 
 // Create an HTTP server
 const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(`
-        <html>
-            <body>
-                <h1>Webcam Stream</h1>
-                <video id="videoElement" width="640" height="360" autoplay></video>
-                <script>
-                    var videoElement = document.getElementById('videoElement');
-                    var ws = new WebSocket('ws://localhost:8080');
-                    ws.onmessage = function(event) {
-                        var arrayBufferView = new Uint8Array(event.data);
-                        var blob = new Blob([arrayBufferView], { type: "video/webm" });
-                        var url = URL.createObjectURL(blob);
-                        videoElement.src = url;
-                    };
-                </script>
-            </body>
-        </html>
-    `);
-});
+    if (req.url === '/stream') {
+        // Set response headers for MJPEG streaming
+        res.writeHead(200, {
+            'Content-Type': 'multipart/x-mixed-replace; boundary=frame'
+        });
 
-// Set up WebSocket server to send video data to clients
-const wss = new WebSocket.Server({ server });
+        // Spawn ffmpeg to capture video from the webcam
+        const ffmpeg = spawn('ffmpeg', [
+            '-f', 'v4l2',           // Use v4l2 input format (for webcams)
+            '-i', '/dev/video0',    // Input device
+            '-f', 'mjpeg',          // Output format: MJPEG (motion jpeg)
+            '-q:v', '5',            // Video quality (lower is better)
+            '-r', '30',             // Set framerate to 30fps
+            'pipe:1'                // Pipe the output to stdout
+        ]);
 
-wss.on('connection', (ws) => {
-    console.log('Client connected');
+        // Pipe the ffmpeg output directly to the HTTP response
+        ffmpeg.stdout.pipe(res);
 
-    // Spawn the ffmpeg process to capture video from the webcam
-    const ffmpeg = spawn('ffmpeg', [
-        '-f', 'v4l2',           // Use video4linux2 input format
-        '-i', '/dev/video0',    // Input device
-        '-t', '10',             // Capture 10 seconds (adjust for your use case)
-        '-f', 'webm',           // Output format (webm is efficient for streaming)
-        '-c:v', 'vp8',          // Video codec (VP8 for webm)
-        '-b:v', '1M',           // Video bitrate
-        '-an',                  // No audio
-        'pipe:1'                // Send output to stdout
-    ]);
+        ffmpeg.stderr.on('data', (data) => {
+            console.error(`stderr: ${data}`);
+        });
 
-    ffmpeg.stdout.on('data', (data) => {
-        console.log('Sending video data');
-        // Send video stream data to WebSocket client
-        ws.send(data);
-    });
+        ffmpeg.on('close', (code) => {
+            console.log(`ffmpeg process exited with code ${code}`);
+        });
 
-    ffmpeg.stderr.on('data', (data) => {
-        console.error(`stderr: ${data}`);
-    });
-
-    ffmpeg.on('close', (code) => {
-        console.log(`ffmpeg process exited with code ${code}`);
-    });
-
-    // Handle WebSocket closing
-    ws.on('close', () => {
-        console.log('Client disconnected');
-        ffmpeg.kill(); // Stop ffmpeg if the WebSocket connection is closed
-    });
+        ffmpeg.on('error', (err) => {
+            console.error('Failed to start ffmpeg:', err);
+        });
+    } else {
+        // Serve the HTML page if the request is not for the stream
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`
+            <html>
+                <body>
+                    <h1>Webcam Stream</h1>
+                    <img src="/stream" alt="Webcam Stream" />
+                </body>
+            </html>
+        `);
+    }
 });
 
 // Start the server on port 8080
