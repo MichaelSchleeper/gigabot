@@ -44,7 +44,7 @@ h1 {
     box-sizing: border-box;
 }
 
-.controls > div {
+.controls > button {
     font-size: 25px;
     cursor: pointer;
     border: 4px solid #00abdf;
@@ -52,4 +52,12 @@ h1 {
     background-color: #79e0ff;
     padding: 1em;
     color: #0068a5;
+}
+.video{
+    display: block;
+    margin:auto;
+    margin-bottom: 10px;
+    border: black;
+    border-width: 5px;
+    border-radius: 10px;
 }
